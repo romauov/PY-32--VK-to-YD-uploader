@@ -2,38 +2,63 @@ import requests
 from pprint import pprint
 import time
 
-VK_token = ' '
-YD_token = ' '
+vk_token = 'vk_token'
+yd_token = 'yd_token'
+target_id = 'some_id'
 
-target_id = ''
 
+def vk_backup(target_id, vk_token, yd_token):
 
-def VK_backup(target_id, VK_token, YD_token):
+    if type(target_id) == str:
+
+        try:
+            r = requests.get(
+                'https://api.vk.com/method/users.get',
+                params={
+                    'access_token': vk_token,
+                    'v': 5.89,
+                    'user_ids': target_id,
+
+                }
+            )
+            target_id = r.json()['response'][0]['id']
+
+        except:
+            r = requests.get(
+                'https://api.vk.com/method/groups.getById',
+                params={
+                    'access_token': vk_token,
+                    'v': 5.61,
+                    'group_ids': target_id,
+
+                }
+            )
+            target_id = r.json()['response'][0]['id'] * (-1)
 
     if target_id > 0:
-        user_name, folder_name = user_info_request(target_id, VK_token)
+        user_name, folder_name = user_info_request(target_id, vk_token)
     else:
-        user_name, folder_name = group_info_request(target_id, VK_token)
+        user_name, folder_name = group_info_request(target_id, vk_token)
 
 
-    create_YD_folder(YD_token, folder_name)
+    create_YD_folder(yd_token, folder_name)
 
-    urls = user_photos_request(target_id, VK_token)
+    urls = user_photos_request(target_id, vk_token)
     photos_count = len(urls)
 
-    photo_uploader(YD_token, urls, folder_name, photos_count)
+    photo_uploader(yd_token, urls, folder_name, photos_count)
 
     pprint('загрузка файлов завершена')
 
     return
 
 
-def user_info_request(target_id, VK_token):
+def user_info_request(target_id, vk_token):
 
     user_info = requests.get(
                 'https://api.vk.com/method/users.get',
                 params={
-                    'access_token' : VK_token,
+                    'access_token' : vk_token,
                     'v' : 5.89,
                     'user_ids' : target_id,
 
@@ -41,16 +66,19 @@ def user_info_request(target_id, VK_token):
             )
 
     user_name = user_info.json()['response'][0]['first_name'] + ' ' + user_info.json()['response'][0]['last_name']
+    # pprint(user_info.json())
     folder_name = 'VK backup ' + user_name + ' ' + str(target_id)
+
+    print('получены данные о пользователе')
 
     return user_name, folder_name
 
-def group_info_request(target_id, VK_token):
+def group_info_request(target_id, vk_token):
 
     group_info = requests.get(
                 'https://api.vk.com/method/groups.getById',
                 params={
-                    'access_token' : VK_token,
+                    'access_token' : vk_token,
                     'v' : 5.61,
                     'group_ids' : abs(target_id),
 
@@ -60,6 +88,8 @@ def group_info_request(target_id, VK_token):
     user_name = group_info.json()['response'][0]['screen_name']
     folder_name = 'VK backup ' + user_name + ' ' + str(abs(target_id))
 
+    print('получены данные о группе')
+
     return user_name, folder_name
 
 def grab_urls_for_back_up(user_photos, urls_for_back_up):
@@ -67,9 +97,9 @@ def grab_urls_for_back_up(user_photos, urls_for_back_up):
     photos = user_photos.json()['response']['items']
 
     for photo in photos:
+        
         photo_sizes = photo['sizes']
-        # pprint('===================')
-        # pprint(photo_sizes)
+        
         pic_name = str(time.ctime(photo['date'])) + ' likes ' + str(photo['likes']['count'])  #str(photo['text'])
         pic_name = pic_name.replace(' ', '_')
         pic_name = pic_name.replace(':', '-')
@@ -88,13 +118,14 @@ def grab_urls_for_back_up(user_photos, urls_for_back_up):
                 url_dict = {'url' : size['url'], 'pic_name' : pic_name}
                 urls_for_back_up.append(url_dict)
                 break
+    print('собраны ссылки для загрузки фотографий')
 
 
-def user_photos_request(target_id, VK_token):
+def user_photos_request(target_id, vk_token):
     user_photos = requests.get(
         'https://api.vk.com/method/photos.getAll',
         params={
-            'access_token': VK_token,
+            'access_token': vk_token,
             'v': 5.77,
             'owner_id': target_id,
             'count': 200,
@@ -115,7 +146,7 @@ def user_photos_request(target_id, VK_token):
         user_photos = requests.get(
             'https://api.vk.com/method/photos.getAll',
             params={
-                'access_token': VK_token,
+                'access_token': vk_token,
                 'v': 5.77,
                 'owner_id': target_id,
                 'count': 200,
@@ -127,14 +158,16 @@ def user_photos_request(target_id, VK_token):
         grab_urls_for_back_up(user_photos, urls_for_back_up)
     # pprint(urls_for_back_up)
     # pprint(len(urls_for_back_up))
+    print('получена информация о фотографиях')
 
     return urls_for_back_up
 
-def create_YD_folder(YD_token, folder_name):
+def create_YD_folder(yd_token, folder_name):
 
-    auth = {'Authorization': f'OAuth {YD_token}'}
+    auth = {'Authorization': f'OAuth {yd_token}'}
     create_folder = requests.put(f'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F{folder_name}',
                             headers=auth)
+    print('создана папка на я.диске')
 
 def photo_uploader(YD_token, urls_for_back_up, folder_name, photos_count):
     i = 1
@@ -156,8 +189,8 @@ def photo_uploader(YD_token, urls_for_back_up, folder_name, photos_count):
 
     return
 
-def url_upload(YD_token, upload_url, file_name, folder_name):
-    auth = {'Authorization': f'OAuth {YD_token}'}
+def url_upload(yd_token, upload_url, file_name, folder_name):
+    auth = {'Authorization': f'OAuth {yd_token}'}
 
     upload_photo = requests.post(
         f'https://cloud-api.yandex.net:443/v1/disk/resources/upload?path={folder_name}%2F{file_name}&url={upload_url}',
@@ -169,9 +202,11 @@ def url_upload(YD_token, upload_url, file_name, folder_name):
         pprint(upload_photo.json())
 
         time.sleep(5)
-        return url_upload(YD_token, upload_url, file_name, folder_name)
+        return url_upload(yd_token, upload_url, file_name, folder_name)
 
-VK_backup(target_id, VK_token, YD_token)
+if __name__ == '__main__':
+
+    vk_backup(target_id, vk_token, yd_token)
 
 
 
