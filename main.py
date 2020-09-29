@@ -4,7 +4,7 @@ import time
 from tokens import vk_token, yd_token
 
 
-target_id = 'rachelc00k'
+target_id = ''
 
 
 def vk_backup(target_id, vk_token, yd_token):
@@ -70,7 +70,7 @@ def user_info_request(target_id, vk_token):
             )
 
     user_name = user_info.json()['response'][0]['first_name'] + ' ' + user_info.json()['response'][0]['last_name']
-    # pprint(user_info.json())
+
     folder_name = 'VK backup ' + user_name + ' ' + str(target_id)
 
     print('получены данные о пользователе')
