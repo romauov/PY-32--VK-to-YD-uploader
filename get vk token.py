@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-app_id = 
+app_id = 7542017
 oauth_url = 'https://oauth.vk.com/authorize'
 oauth_data = {
     'client_id': app_id,
